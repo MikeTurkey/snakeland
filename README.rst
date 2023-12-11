@@ -108,12 +108,12 @@ CONFIG
 
 The Config is in restricted toml format.
 
-OSCHECK
-^^^^^^^^
+OSCHECK:  Describe OS names. The string is similar to 'uname -s' cmd.
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: text
 
-   Describe OS names. The string is similar to 'uname -s' cmd.
+
    default section, optional key.
      Darwin: Mac OS
      Linux: Linux based OS
