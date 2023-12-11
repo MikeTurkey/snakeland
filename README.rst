@@ -127,7 +127,8 @@ DSTBASEDIR:
 
 .. code-block:: text
 		
-   Destination Base Directory. Recommend path is '/usr/local/libexec/CMDNAME'.
+   Destination Base Directory.
+   Recommend path is '/usr/local/libexec/CMDNAME'.
    default section, essential key.
 
 INSTALLCMD:
@@ -153,7 +154,8 @@ TARGETPY3:
 .. code-block:: text
 
    The python3 script path. The script is executed by python3.xx cmd.
-   default section, optional key. (Either of TARGETPY3, TARGETCMD is always required.)
+   default section, optional key.
+   (Either of TARGETPY3, TARGETCMD is always required.)
 
 SHEBANG:
 ^^^^^^^^^
@@ -181,7 +183,8 @@ DSTDIR:
 
 .. code-block:: text
 
-   Relative path of DSTBASEDIR. You cannot set it to a directory above the DSTBASEDIR.
+   Relative path of DSTBASEDIR.
+   You cannot set it to a directory above the DSTBASEDIR.
    source file section, essential key.
 
 	 
