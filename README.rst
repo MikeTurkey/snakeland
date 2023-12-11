@@ -170,7 +170,8 @@ PY3VERSION:
 
 .. code-block:: text
 
-   Execute python3 of the version. The string is similar to 'findpy3' options.
+   Execute python3 of the version.
+   The string is similar to 'findpy3' options.
    default section, optional key.
      '3.x later'  : python 3.x later.
      '3.x older'  : python 3.x older.
