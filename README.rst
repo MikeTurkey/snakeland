@@ -122,41 +122,87 @@ OSCHECK:
        OSCHECK = ['Darwin', 'Linux', 'FreeBSD']
 
      
-| DSTBASEDIR: Destination Base Directory. Recommend path is '/usr/local/libexec/CMDNAME'.
-|             default section, essential key.
-|
-| INSTALLCMD: Install command path. default path is '/usr/local/bin'.
-|             default section, optional key.
-|
-| CMDNAME: The command name. The command file is made on INSTALLCMD directory.
-|          default section, essential key.
-| 
-| TARGETPY3: The python3 script path. The script is executed by python3.xx cmd.
-|            default section, optional key. (Either of TARGETPY3, TARGETCMD is always required.)
-|
-| SHEBANG: The shebang of CMDNAME file. default path is '/bin/sh'.
-|          default section, optional key.
-|
-| PY3VERSION: Execute python3 of the version. The string is similar to 'findpy3' options.
-|             default section, optional key.
-|   '3.x later'  : python 3.x later.
-|   '3.x older'  : python 3.x older.
-|   'latest'     : Latest python3 
-|   '3.xx - 3.yy': Latest python3 in 3.xx - 3.yy.
-|   '3.6 3.7 3.8': First found python3 in 3.6, 3.7, 3.8.
-|
-| DSTDIR: Relative path of DSTBASEDIR. You cannot set it to a directory above the DSTBASEDIR.
-|         source file section, essential key.
-|
-| FMODE: File mode of the section file. default mode is 644.
-|        source file section, optional key.
-|
-| Example of config: 
-|   DSTBASEDIR = '/usr/local/libexec/CMDNAMEAPP/'
-|   CMDNAME   = 'CMDNAMEAPP'
-|   TARGETPY3 = '/usr/local/libexec/CMDNAMEAPP/CMDNAMEAPP.py'
-|   [script/CMDNAMEAPP.py]
-|       DSTDIR = '.'
+DSTBASEDIR:
+^^^^^^^^^^^^
+
+.. code-block:: text
+		
+   Destination Base Directory. Recommend path is '/usr/local/libexec/CMDNAME'.
+   default section, essential key.
+
+INSTALLCMD:
+^^^^^^^^^^^^
+
+.. code-block:: text
+
+   Install command path. default path is '/usr/local/bin'.
+   default section, optional key.
+
+	     
+CMDNAME:
+^^^^^^^^^
+
+.. code-block:: text
+
+   The command name. The command file is made on INSTALLCMD directory.
+   default section, essential key.
+
+TARGETPY3:
+^^^^^^^^^^^
+
+.. code-block:: text
+
+   The python3 script path. The script is executed by python3.xx cmd.
+   default section, optional key. (Either of TARGETPY3, TARGETCMD is always required.)
+
+SHEBANG:
+^^^^^^^^^
+
+.. code-block:: text
+
+   The shebang of CMDNAME file. default path is '/bin/sh'.
+   default section, optional key.
+
+PY3VERSION:
+^^^^^^^^^^^^
+
+.. code-block:: text
+
+   Execute python3 of the version. The string is similar to 'findpy3' options.
+   default section, optional key.
+     '3.x later'  : python 3.x later.
+     '3.x older'  : python 3.x older.
+     'latest'     : Latest python3 
+     '3.xx - 3.yy': Latest python3 in 3.xx - 3.yy.
+     '3.6 3.7 3.8': First found python3 in 3.6, 3.7, 3.8.
+   
+DSTDIR:
+^^^^^^^^
+
+.. code-block:: text
+
+   Relative path of DSTBASEDIR. You cannot set it to a directory above the DSTBASEDIR.
+   source file section, essential key.
+
+	 
+FMODE:
+^^^^^^^
+
+.. code-block:: text
+
+   File mode of the section file. default mode is 644.
+   source file section, optional key.
+
+Example of config
+^^^^^^^^^^^^^^^^^^
+
+.. code-block:: text
+		
+   DSTBASEDIR = '/usr/local/libexec/CMDNAMEAPP/'
+   CMDNAME   = 'CMDNAMEAPP'
+   TARGETPY3 = '/usr/local/libexec/CMDNAMEAPP/CMDNAMEAPP.py'
+   [script/CMDNAMEAPP.py]
+       DSTDIR = '.'
 
 Bugs
 ----
