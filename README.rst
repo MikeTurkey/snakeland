@@ -221,9 +221,11 @@ License
 | GPLv3 LICENSE
 | 2023 Copyright Mike Turkey
 | ABSOLUTELY NO WARRANTY
+|
 
 This software is licensed under the terms of the GNU General Public License, version 3 (GPLv3), with an additional clause prohibiting the use of this software for machine learning purposes. Please refer to the LICENSE file for the complete license text and additional terms.
 
+|
 |  See also
 |    GPL-3 Licence, https://www.gnu.org/licenses/gpl-3.0.html.en
 |    Mike Turkey.com, https://miketurkey.com
