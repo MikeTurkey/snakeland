@@ -53,14 +53,28 @@ The script wrapper is make on /usr/local/bin as cui command.
 ARGUMENT
 ------------
 
-.. option:: --version, --help, --license
+.. .. option:: --version, --help, --license
+.. | Print version, help message, license.
 
-| Print version, help message, license.
+--version, --help, --license
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: text
+
+   Print version, help message, license.
+
+--latest
+^^^^^^^^
+
+.. code-block:: text
+   
+   findpy3 sub command only
+   Print latest python3 command path.
+	    
+
 
 .. option:: --latest
 
-| findpy3 sub command only
-| Print latest python3 command path.
 
 .. option:: --later [PYTHONVERSION]
 
