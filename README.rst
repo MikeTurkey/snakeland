@@ -108,15 +108,20 @@ CONFIG
 
 The Config is in restricted toml format.
 
-|
-| OSCHECK: Describe OS names. The string is similar to 'uname -s' cmd.
-|          default section, optional key.
-|   Darwin: Mac OS
-|   Linux: Linux based OS
-|   FreeBSD: FreeBSD OS
-|   e.g.
-|     OSCHECK = ['Darwin', 'Linux', 'FreeBSD']
-|
+OSCHECK
+^^^^^^^^
+
+.. code-block:: text
+
+   Describe OS names. The string is similar to 'uname -s' cmd.
+   default section, optional key.
+     Darwin: Mac OS
+     Linux: Linux based OS
+     FreeBSD: FreeBSD OS
+     e.g.
+       OSCHECK = ['Darwin', 'Linux', 'FreeBSD']
+
+     
 | DSTBASEDIR: Destination Base Directory. Recommend path is '/usr/local/libexec/CMDNAME'.
 |             default section, essential key.
 |
