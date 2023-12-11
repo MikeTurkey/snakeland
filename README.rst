@@ -71,30 +71,37 @@ ARGUMENT
    findpy3 sub command only
    Print latest python3 command path.
 	    
+--later [PYTHONVERSION]
+^^^^^^^^^^^^^^^^^^^^^^^^
 
+.. code-block:: text
 
-.. option:: --latest
+   findpy3 sub command only
+   Print PYTHONVERSION later command path.
 
+--older [PYTHONVERSION]
+^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. option:: --later [PYTHONVERSION]
+.. code-block:: text
 
-| findpy3 sub command only
-| Print PYTHONVERSION later command path.
+   findpy3 sub command only
+   Print PYTHONVERSION older command path.
 
-.. option:: --older [PYTHONVERSION]
+--range 3.xx-3.yy
+^^^^^^^^^^^^^^^^^^
 
-| findpy3 sub command only
-| Print PYTHONVERSION older command path.
+.. code-block:: text
+		
+   findpy3 sub command only
+   Print latest python command path in 3.xx - 3.yy.
 
-.. option:: --range 3.xx-3.yy
-	    
-| findpy3 sub command only
-| Print latest python command path in 3.xx - 3.yy.
+--order 3.x,...,3.yy
+^^^^^^^^^^^^^^^^^^^^^^
 
-.. option:: --order 3.x,...,3.yy 
-	    
-| findpy3 sub command only
-| Print first matched python command path.
+.. code-block:: text
+		
+   findpy3 sub command only
+   Print first matched python command path.
 
 CONFIG
 ------------
