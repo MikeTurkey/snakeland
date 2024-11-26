@@ -10,4 +10,4 @@ SHA3-256(./script/install-snakeland.sh)= c0267a41c516094995477b2c609bb423abdfc7a
 SHA3-256(./script/snakeland.py)= c639faa5441a6eaed45e8d3ef01cc13ca52cbf3a05ea103425ced34cd8f4aab6
 SHA3-256(./HISTORY)= a55aa375dc0b92f01d242ea52c8303aaf34eed59d896f6f8c28b847618f088dd
 SHA3-256(./README.rst)= d1d694bfa8b63d92abeeae9d6f8563bebc3798465fa4e35e0187c90ae3d82655
-SHA3-256(./LICENSE_snakeland)= df7a5364c89760adafad4c115d40c9c2b8347705dca665da0ff787393630a943
+
