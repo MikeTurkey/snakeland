@@ -5,7 +5,7 @@
 ######################################################################
 #
 # SNAKELAND, Instant python script installer.
-# Copyright (C) 2023 Takaaki Watanabe as Mike Turkey
+# Copyright (C) 2023-2024 Mike Turkey
 # contact: voice[ATmark]miketurkey.com
 #
 # This program is free software: you can redistribute it and/or modify
@@ -44,7 +44,6 @@
 #
 
 from .snakeland import main_snakeland
-
-if __name__ == "__main__":
+if __name__ == '__main__':
     main_snakeland()
     exit(0)
