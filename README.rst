@@ -66,7 +66,7 @@ ARGUMENT
 
       | Print version, help message, license.
 
-  --latest
+  `--latest`
 
       | findpy3 sub command only
       | Print latest python3 command path.
