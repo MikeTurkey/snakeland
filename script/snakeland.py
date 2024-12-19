@@ -62,6 +62,7 @@ import random
 import unicodedata
 import getpass
 import glob
+import pathlib
 
 
 class Print_Derivative(object):
@@ -123,7 +124,7 @@ class Args_snakelands(object):
         self.latest: bool = False
         self.range: str = ''
         self.order: str = ''
-        self._subcmds: list = ['install', 'uninstall', 'findpy3']
+        self._subcmds: list = ['install-byconf', 'uninstall', 'findpy3']
         self._pass_analyze: bool = False
         self._pass_check: bool = False
         self._pass_normalize: bool = False
@@ -187,7 +188,7 @@ class Args_snakelands(object):
                 if arg == '--order':
                     on_order = True
                     continue
-            if self.config == '' and (self.subcmd in ['install', 'uninstall']):
+            if self.config == '' and (self.subcmd in ['install-byconf', 'uninstall']):
                 self.config = arg
                 continue
             errmes = 'Error: Invalid argument. [{0}]'.format(arg)
@@ -219,7 +220,7 @@ class Args_snakelands(object):
         if self.license:
             Main_snakeland.show_license()
             exit(0)
-        if self.subcmd == 'install':
+        if self.subcmd == 'install-byconf':
             if os.path.isfile(self.config) != True and os.path.dirname(self.config):
                 errmes = 'Error: Not found the config file. [{0}]'.format(
                     self.config)
@@ -295,8 +296,12 @@ class ConfParser_snakeland():
     def __init__(self):
         self.dfdict: dict = dict()
         self.srcdict: dict = dict()
-        self._dfdict_keys: list = ['OSCHECK', 'DSTBASEDIR', 'INSTALLCMD', 'CMDNAME',
-                                   'SHEBANG', 'TARGETPY3', 'TARGETCMD', 'PY3VERSION']
+        self._dfdict_keys: list = ['OSCHECK', 'DSTBASEDIR', 'INSTALLCMD', 'SHEBANG',
+                                   'TARGETCMD', 'PY3VERSION', 'PKGNAME']
+        self._dfdict_keys += ['PY3TARGET{0:03d}'.format(i)
+                              for i in range(1, 1000)]
+        self._dfdict_keys += ['CMDNAME{0:03d}'.format(i)
+                              for i in range(1, 1000)]
         self._srcdict_keys: list = ['DSTDIR', 'DSTABSDIR', 'FMODE']
         self._rawconflst: list = []
         self._pass_analyze: bool = False
@@ -443,10 +448,13 @@ class ConfParser_snakeland():
         return
 
     def analyze(self):
-        dfdictkeys_es: list = ['CMDNAME', 'DSTBASEDIR']
+        dfdictkeys_es: list = ['CMDNAME001', 'DSTBASEDIR', 'PKGNAME']
         srcdictkeys_es: list = ['DSTDIR']
         dfdictkeys_opt: list = ['OSCHECK', 'INSTALLCMD',
-                                'TARGETPY3', 'TARGETCMD', 'SHEBANG', 'PY3VERSION']
+                                'TARGETCMD', 'SHEBANG', 'PY3VERSION']
+        dfdictkeys_opt += ['PY3TARGET{0:03d}'.format(i)
+                           for i in range(1, 1000)]
+        dfdictkeys_opt += ['CMDNAME{0:03d}'.format(i) for i in range(2, 1000)]
         srcdictkeys_opt: list = ['FMODE']
         dfdict: dict = self.dfdict
         srcdict: dict = self.srcdict
@@ -482,10 +490,14 @@ class ConfParser_snakeland():
                         key)
                     print_err(errmes)
                     exit(1)
-        key1: str = 'TARGETPY3'
-        key2: str = 'TARGETCMD'
-        on_key1: bool = True if dfdict.get(key1, None) != None else False
-        on_key2: bool = True if dfdict.get(key2, None) != None else False
+        key1: str = 'PY3TARGET{0:03d}'
+        key2: str = 'CMDTARGET{0:03d}'
+        templist: list = [True for i in range(
+            1, 1000) if dfdict.get(key1.format(i), None) != None]
+        on_key1: bool = True if len(templist) >= 1 else False
+        templist: list = [True for i in range(
+            1, 1000) if dfdict.get(key2.format(i), None) != None]
+        on_key2: bool = True if len(templist) >= 1 else False
         if on_key1 != True and on_key2 != True:
             errmes = 'Error: Not found {0} or {1} value on default section of config.'.format(
                 key1, key2)
@@ -548,13 +560,31 @@ class ConfParser_snakeland():
             print_err(errmes)
             exit(1)
         ptn = r'[a-zA-Z0-9\-\_]+$'
-        varname: str = 'CMDNAME'
+        varname: str = 'PKGNAME'
+        var: str = dfdict.get(varname, '')
+        if re.match(ptn, var) == None:
+            errmes = 'Error: Not match pattern(A-Z, a-z, 0-9, "-", "_") of PKGNAME. [{0}]'.format(
+                varname)
+            print_err(errmes)
+            exit(1)
+        ptn = r'[a-zA-Z0-9\-\_]+$'
+        varname: str = 'CMDNAME001'
         var: str = dfdict.get(varname, '')
         if re.match(ptn, var) == None:
             errmes = 'Error: Not match pattern(A-Z, a-z, 0-9, "-", "_") of CMDNAME. [{0}]'.format(
                 varname)
             print_err(errmes)
             exit(1)
+        for i in range(2, 1000):
+            varname: str = 'CMDNAME{0:03d}'.format(i)
+            var: str = dfdict.get(varname, '')
+            if var == '':
+                break
+            if re.match(ptn, var) == None:
+                errmes = 'Error: Not match pattern(A-Z, a-z, 0-9, "-", "_") of CMDNAME. [{0}]'.format(
+                    varname)
+                print_err(errmes)
+                exit(1)
         varname = 'DSTBASEDIR'
         value = dfdict.get(varname, '')
         dstbasedir: str = value
@@ -573,7 +603,7 @@ class ConfParser_snakeland():
             exit(1)
         varname = 'OSCHECK'
         var = dfdict.get(varname, '')
-        oscheck_list: list = ['Darwin', 'Linux', 'FreeBSD']
+        oscheck_list: list = ['Darwin', 'Linux', 'FreeBSD', 'OpenBSD']
         if var != '':
             for s in var:
                 if s not in oscheck_list:
@@ -588,30 +618,34 @@ class ConfParser_snakeland():
                     var)
                 print_err(errmes)
                 exit(1)
-        varname = 'TARGETPY3'
-        var = dfdict.get(varname, '')
-        if var != '':
+        for i in range(1, 1000):
+            varname = 'PY3TARGET{0:03d}'.format(i)
+            var = dfdict.get(varname, '')
+            if var == '':
+                break
             if os.path.isabs(var) != True:
-                errmes = 'Error: TARGETPY3 path is NOT absolute path. [{0}]'.format(
-                    var)
+                errmes = 'Error: {0} path is NOT absolute path. [{1}]'.format(
+                    varname, var)
                 print_err(errmes)
                 exit(1)
             if var.find(dstbasedir) != 0:
-                errmes = 'Error: TARGETPY3 path is NOT based on DSTBASEDIR. [{0}]'.format(
-                    var)
+                errmes = 'Error: {0} path is NOT based on DSTBASEDIR. [{1}]'.format(
+                    varname, var)
                 print_err(errmes)
                 exit(1)
-        varname = 'TARGETCMD'
-        var = dfdict.get(varname, '')
-        if var != '':
+        for i in range(1, 1000):
+            varname = 'CMDTARGET{0:03d}'.format(i)
+            var = dfdict.get(varname, '')
+            if var == '':
+                break
             if os.path.isabs(var) != True:
-                errmes = 'Error: TARGETCMD path is NOT absolute path. [{0}]'.format(
-                    var)
+                errmes = 'Error: {0} path is NOT absolute path. [{1}]'.format(
+                    varname, var)
                 print_err(errmes)
                 exit(1)
             if var.find(dstbasedir) != 0:
-                errmes = 'Error: TARGETCMD path is NOT based on DSTBASEDIR. [{0}]'.format(
-                    var)
+                errmes = 'Error: {0} path is NOT based on DSTBASEDIR. [{1}]'.format(
+                    varname, var)
                 print_err(errmes)
                 exit(1)
         varname = 'SHEBANG'
@@ -715,6 +749,7 @@ class ConfParser_snakeland():
         exit(1)
 
     def normalize(self):
+        def abspath(x): return os.path.abspath(os.path.expanduser(x))
         errmes: str = ''
         ptn: str = ''
         dfdict: dict = self.dfdict.copy()
@@ -728,10 +763,13 @@ class ConfParser_snakeland():
             errmes = 'Error: The check method has not passed yet.'
             print_err(errmes)
             exit(1)
-        for varname in ['TARGETPY3', 'TARGETCMD']:
+        templist: list = list()
+        templist = ['PY3TARGET{0:03d}'.format(i) for i in range(1, 1000)]
+        templist += ['CMDTARGET{0:03d}'.format(i) for i in range(1, 1000)]
+        for varname in templist:
             var = dfdict.get(varname, '')
             if var != '':
-                dfdict[varname] = os.path.normpath(var)
+                dfdict[varname] = abspath(var)
         varname = 'PY3VERSION'
         var = dfdict.get(varname, '')
         var = self._normalize_PY3VERSION(var)
@@ -778,9 +816,76 @@ class ConfParser_snakeland():
         return
 
 
+class Snakeland_uninstall(object):
+    def __init__(self):
+        self._subcmd: str = ''
+        self._pkgname: str = ''
+        self._receipt_fpaths: list = list()
+        return
+
+    @property
+    def subcmd(self) -> str:
+        return self._subcmd
+
+    @property
+    def pkgname(self) -> str:
+        return self._pkgname
+
+    @property
+    def receipt_fpaths(self) -> list:
+        return self._receipt_fpaths
+
+    def work(self):
+        for arg in sys.argv[1:]:
+            if self.subcmd == '':
+                self._subcmd = arg
+                continue
+            if self.pkgname == '':
+                self._pkgname = arg
+                continue
+        basedir: str = '/usr/local/libexec/snakeland/pkg/'
+        pkgdir: str = os.path.abspath(basedir + '/' + self.pkgname)
+        recfpath: str = pkgdir + '/receipt.txt'
+        recfpath = os.path.abspath(recfpath)
+        errmes: str = ''
+        if os.path.isfile(recfpath) != True:
+            errmes = 'Error: Not found pkgname. [{0}]'.format(self.pkgname)
+            print(errmes, file=sys.stderr)
+            exit(1)
+        with open(recfpath, 'rt') as fp:
+            for row in fp:
+                fpath = row.strip()
+                if os.path.isfile(fpath):
+                    pathlib.Path(fpath).unlink()
+                    continue
+                if os.path.isdir(fpath):
+                    [pathlib.Path(f).unlink(missing_ok=True)
+                     for f in glob.glob(fpath + '/**', recursive=True)
+                     if os.path.isfile(f)]
+                    templist = [d for d in glob.glob(fpath + '/**', recursive=True)
+                                if os.path.isdir(d)]
+                    templist.sort(key=lambda x: len(x), reverse=True)
+                    [pathlib.Path(d).rmdir() for d in templist]
+                    if os.path.isdir(fpath):
+                        pathlib.Path(fpath).rmdir()
+                    continue
+        [pathlib.Path(f).unlink(missing_ok=False)
+         for f in glob.glob(pkgdir + '/**', recursive=True)
+         if os.path.isfile(f)]
+        [pathlib.Path(d).rmdir()
+         for d in glob.glob(pkgdir + '/**', recursive=True)
+         if os.path.isdir(d)]
+        if os.path.isdir(pkgdir):
+            pathlib.Path(pkgdir).rmdir()
+        mes: str = 'Success: The package is removed. [{0}]'.format(
+            self.pkgname)
+        print(mes)
+        exit(0)
+
+
 class Main_snakeland():
-    version = '0.0.2'
-    date = '26 Nov 2024'
+    version = '0.0.3'
+    date = '19 Dec 2024'
 
     @staticmethod
     def show_version():
@@ -804,12 +909,15 @@ class Main_snakeland():
                  '  Instant Python3 script installer.',
                  'Synopsis',
                  '  snakeland --version --help --license',
-                 '  snakeland install [CONFIG]',
+                 '  snakeland install-byconf [CONFIG]',
+                 '  snakeland uninstall [PKGNAME]',
                  '  snakeland findpy3 [--later 3.xx] | [--older 3.xx] | --latest',
                  '                    | [--range 3.xx-3.yy] | [--order 3.x,..,3.yy]',
                  'Sub command',
-                 '  install: install python script.',
+                 '  install-byconf: install python script by snakeland.conf.',
+                 '  uninstall: uninstall PKGNAME',
                  '  findpy3: find python3 command path.',
+                 '',
                  'Description',
                  '  --latest: Find latest python3.xx. ',
                  '  --later 3.xx: Find python3.xx later.  e.g. --later 3.7',
@@ -821,6 +929,7 @@ class Main_snakeland():
                  'e.g.',
                  '  {0} --version'.format(scr_fname),
                  '  {0} install snakeland-CMDNAME.conf'.format(scr_fname),
+                 '  {0} uninstall mk1pass'.format(scr_fname),
                  '  {0} findpy3 --later 3.6'.format(scr_fname),
                  '  {0} findpy3 --older 3.10'.format(scr_fname),
                  '  {0} findpy3 --range 3.5-3.10'.format(scr_fname),
@@ -885,6 +994,8 @@ class Main_snakeland():
             if osname == 'Darwin' and sys.platform.startswith('darwin') == True:
                 return
             if osname == 'FreeBSD' and sys.platform.startswith('freebsd') == True:
+                return
+            if osname == 'OpenBSD' and sys.platform.startswith('openbsd') == True:
                 return
             if osname == 'Linux' and sys.platform.startswith('linux') == True:
                 return
@@ -1135,7 +1246,7 @@ class Main_snakeland():
         exit(1)
 
     @staticmethod
-    def make_pkgreceipt(pkgdir: str, dfdict: dict, dryrun: bool = False):
+    def make_pkgreceipt(pkgdir: str, dfdict: dict, receipt: list, dryrun: bool = False):
         appdir: str = ''
         mes: str = ''
         pkgdir_fmode: int = 0o644
@@ -1153,7 +1264,7 @@ class Main_snakeland():
                         pkgdir)
                     print_err(errmes)
                     exit(1)
-        appdir = os.path.abspath(pkgdir + '/' + dfdict['CMDNAME'])
+        appdir = os.path.abspath(pkgdir + '/' + dfdict['PKGNAME'])
         if os.path.isdir(appdir) != True:
             if dryrun:
                 mes = 'Dryrun: Make directory. [{0}]'.format(appdir)
@@ -1167,6 +1278,11 @@ class Main_snakeland():
                         appdir)
                     print_err(errmes)
                     exit(1)
+        sorted_receipt: list = [f for f in receipt if os.path.isfile(f)]
+        sorted_receipt += [f for f in receipt if os.path.isdir(f)]
+        fpath: str = os.path.normpath(appdir + '/receipt.txt')
+        with open(fpath, 'wt') as fp:
+            [print(row, file=fp) for row in sorted_receipt]
         return
 
     @staticmethod
@@ -1176,8 +1292,12 @@ class Main_snakeland():
         meses: list = list()
         errmes: str = ''
         receipt: list = []
-        py3mode = True if dfdict.get('TARGETPY3', '') != '' else False
-        cmdmode = True if dfdict.get('TARGETCMD', '') != '' else False
+        templist: list = [True for i in range(1, 1000) if dfdict.get(
+            'PY3TARGET{0:03d}'.format(i), '') != '']
+        py3mode = True if any(templist) == True else False
+        templist: list = [True for i in range(1, 1000) if dfdict.get(
+            'CMDTARGET{0:03d}'.format(i), '') != '']
+        cmdmode = True if any(templist) == True else False
         if [py3mode, cmdmode].count(True) >= 2:
             errmes = 'Error: Too many mode on install method.'
             print_err(errmes)
@@ -1187,52 +1307,64 @@ class Main_snakeland():
             print_err(errmes)
             exit(1)
         if cmdmode:
-            meses = ['#!/bin/sh',
-                     'exec {0} "$@"'.format(dfdict['TARGETCMD'])]
-            installcmd_dir = dfdict['INSTALLCMD']
-            installcmd = os.path.abspath(
-                installcmd_dir + '/' + dfdict['CMDNAME'])
-            if dryrun:
-                [print(s) for s in meses]
-                print('cmd: ', installcmd)
-            else:
-                try:
-                    with open(installcmd, 'wt', encoding='utf-8') as fp:
-                        for s in meses:
-                            print(s, file=fp)
-                    os.chmod(installcmd, 0o775)
-                except:
-                    errmes = 'Error: Failure to create the command. [{0}]'.format(
-                        installcmd)
-                    print_err(errmes)
-                    exit(1)
-            receipt = [installcmd]
+            receipt: list = list()
+            for i in range(1, 1000):
+                opt_cmdname = dfdict.get('CMDNAME{0:03d}'.format(i), '')
+                opt_cmdtarget = dfdict.get('CMDTARGET{0:03d}'.format(i), '')
+                if opt_cmdname == '' or opt_cmdtarget == '':
+                    break
+                meses: list =\
+                    ['#!/bin/sh',
+                     'exec {0} "$@"'.format(opt_cmdtarget)]
+                installcmd_dir = dfdict['INSTALLCMD']
+                installcmd = os.path.abspath(
+                    installcmd_dir + '/' + opt_cmdtarget)
+                if dryrun:
+                    [print(s) for s in meses]
+                    print('cmd: ', installcmd)
+                else:
+                    try:
+                        with open(installcmd, 'wt', encoding='utf-8') as fp:
+                            [print(s, file=fp) for s in meses]
+                        os.chmod(installcmd, 0o775)
+                    except:
+                        errmes = 'Error: Failure to create the command. [{0}]'.format(
+                            installcmd)
+                        print_err(errmes)
+                        exit(1)
+                receipt.append(installcmd)
             return receipt
         if py3mode:
+            receipt: list = list()
             py3cmdopt = Main_snakeland._install_confpy(py3ver)
-            meses = ['#!/bin/sh',
+            for i in range(1, 1000):
+                opt_cmdname = dfdict.get('CMDNAME{0:03d}'.format(i), '')
+                opt_py3target = dfdict.get('PY3TARGET{0:03d}'.format(i), '')
+                if opt_cmdname == '' or opt_py3target == '':
+                    break
+                meses =\
+                    ['#!/bin/sh',
                      'PYTHON=$(snakeland findpy3 {0})'.format(py3cmdopt),
                      'if ! test -x "$PYTHON"; then',
                      '    echo "$PYTHON"; exit 1; fi',
-                     'exec "$PYTHON" {0} "$@"'.format(dfdict['TARGETPY3'])]
-            installcmd_dir = dfdict['INSTALLCMD']
-            installcmd = os.path.abspath(
-                installcmd_dir + '/' + dfdict['CMDNAME'])
-            if dryrun:
-                [print(s) for s in meses]
-                print('cmd: ', installcmd)
-            else:
-                try:
-                    with open(installcmd, 'wt', encoding='utf-8') as fp:
-                        for s in meses:
-                            print(s, file=fp)
-                    os.chmod(installcmd, 0o775)
-                except:
-                    errmes = 'Error: Failure to create the command. [{0}]'.format(
-                        installcmd)
-                    print_err(errmes)
-                    exit(1)
-            receipt = [installcmd]
+                     'exec "$PYTHON" {0} "$@"'.format(opt_py3target)]
+                installcmd_dir = dfdict['INSTALLCMD']
+                installcmd = os.path.abspath(
+                    installcmd_dir + '/' + opt_cmdname)
+                if dryrun:
+                    [print(s) for s in meses]
+                    print('cmd: ', installcmd)
+                else:
+                    try:
+                        with open(installcmd, 'wt', encoding='utf-8') as fp:
+                            [print(s, file=fp) for s in meses]
+                        os.chmod(installcmd, 0o775)
+                    except:
+                        errmes = 'Error: Failure to create the command. [{0}]'.format(
+                            installcmd)
+                        print_err(errmes)
+                        exit(1)
+                receipt.append(installcmd)
             return receipt
         errmes = 'The script is attempting to execute a prohibited row.'
         raise RuntimeError(errmes)
@@ -1261,7 +1393,11 @@ def main_snakeland():
             exit(1)
         print(python3xpath)
         exit(0)
-    if args.subcmd == 'install':
+    if args.subcmd == 'uninstall':
+        cls = Snakeland_uninstall()
+        cls.work()
+        exit(0)
+    if args.subcmd == 'install-byconf':
         conf: ConfParser_snakeland = ConfParser_snakeland()
         conf.load(args.config)
         conf.analyze()
@@ -1284,8 +1420,9 @@ def main_snakeland():
         templist = Main_snakeland.install(
             conf.dfdict, rawconf.dfdict['PY3VERSION'], dryrun=False)
         receipt += templist
-        Main_snakeland.make_pkgreceipt(pkgdir, conf.dfdict, dryrun=False)
-        s = 'Success: {0} has been installed.'.format(conf.dfdict['CMDNAME'])
+        Main_snakeland.make_pkgreceipt(
+            pkgdir, conf.dfdict, receipt, dryrun=False)
+        s = 'Success: {0} has been installed.'.format(conf.dfdict['PKGNAME'])
         print(s, file=sys.stdout)
         exit(0)
     return
