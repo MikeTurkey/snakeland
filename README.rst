@@ -3,8 +3,8 @@ snakeland
 ********************************
 
  | snakeland created by MikeTurkey
- | Version 0.0.3, 17 Dec 2024
- | 2023-2024, COPYRIGHT MikeTurkey, All Right Reserved.
+ | Version 0.0.4, 3 Jan 2025
+ | 2023-2025, COPYRIGHT MikeTurkey, All Right Reserved.
  | ABSOLUTELY NO WARRANTY. The Licence is based on GPLv3.
  | URL: https://miketurkey.com
 
@@ -16,10 +16,10 @@ Summary
 Synopsis
 ========
 
- | snakeland --version | --help | --license'
+ | snakeland \--version | \--help | \--license'
  | snakeland install-byconf [CONFIG]
  | snakeland uninstall [PKGNAME]
- | snakeland findpy3 [--later 3.xx] | [--older 3.xx] | --latest | [--range 3.xx-3.yy] | [--order 3.x,..,3.yy]
+ | snakeland findpy3 [\--later 3.xx] | [\--older 3.xx] | \--latest | [\--range 3.xx-3.yy] | [\--order 3.x,..,3.yy]
 
 QUICK START
 --------------
@@ -28,7 +28,7 @@ QUICK START
 
  .. code-block:: console
 
-   $ snakeland install snakeland-APP.conf
+   $ snakeland install-byconf snakeland-APP.conf
    $ APP --help 
      -- help message --
 
@@ -62,31 +62,31 @@ DESCRIPTION
 ARGUMENT
 ------------
 
-  --version, --help, --license
+  \--version, \--help, \--license
 
       | Print version, help message, license.
 
-  --latest
+  \--latest
 
       | findpy3 sub command only
       | Print latest python3 command path.
 	    
-  --later [PYTHONVERSION]
+  \--later [PYTHONVERSION]
 
       | findpy3 sub command only
       | Print PYTHONVERSION later command path.
 
-  --older [PYTHONVERSION]
+  \--older [PYTHONVERSION]
 
       | findpy3 sub command only
       | Print PYTHONVERSION older command path.
 
-  --range 3.xx-3.yy
+  \--range 3.xx-3.yy
 
       | findpy3 sub command only
       | Print latest python command path in 3.xx - 3.yy.
 
-  --order 3.x,...,3.yy
+  \--order 3.x,...,3.yy
 
       | findpy3 sub command only
       | Print first matched python command path.
@@ -129,7 +129,23 @@ CONFIG
       | The python3 script path. The script is executed by python3.xx cmd.
       | default section, optional key.
       | (Either of TARGETPY3, TARGETCMD is always required.)
+      
+  SRCMANFILES: Source Man files.
 
+      | default section, optional key.
+      | The pair of SRCMANFILES and DSTMANDIR work together to install the run directory.
+      | Enable to set plain type and gz compress type.
+      | snakeland install one of plain and gz compress file by the platform.
+      | e.g.
+      |   SRCMANFILES = ['man/snakeland.1.gz', 'man/snakeland.1']
+ 
+  DSTMANDIR: Destination Man directory.
+
+      | default section, optional key.
+      | The pair of SRCMANFILES and DSTMANDIR work together to install the run directory.
+      | e.g.
+      |   DSTMANDIR = '/usr/local/share/man/man1'
+      
   SHEBANG:
 
       | The shebang of CMDNAME file. default path is '/bin/sh'.
@@ -191,7 +207,7 @@ LICENSE
 COPYRIGHT
 -------------
   
-  | 2023-2024, COPYRIGHT MikeTurkey, All Right Reserved.
+  | 2023-2025, COPYRIGHT MikeTurkey, All Right Reserved.
   | ABSOLUTELY NO WARRANTY.
   | Document: GFDL1.3 License including a prohibition clause for AI training.
   | URL: https://miketurkey.com

@@ -5,7 +5,7 @@
 ######################################################################
 #
 # SNAKELAND, Instant python script installer.
-# Copyright (C) 2023-2024 Mike Turkey
+# Copyright 2023-2025 MikeTurkey ALL RIGHT RESERVED.
 # contact: voice[ATmark]miketurkey.com
 #
 # This program is free software: you can redistribute it and/or modify
@@ -63,6 +63,7 @@ import unicodedata
 import getpass
 import glob
 import pathlib
+import tempfile
 
 
 class Print_Derivative(object):
@@ -297,17 +298,23 @@ class ConfParser_snakeland():
         self.dfdict: dict = dict()
         self.srcdict: dict = dict()
         self._dfdict_keys: list = ['OSCHECK', 'DSTBASEDIR', 'INSTALLCMD', 'SHEBANG',
-                                   'TARGETCMD', 'PY3VERSION', 'PKGNAME']
+                                   'TARGETCMD', 'PY3VERSION', 'PKGNAME', 'DSTMANDIR',
+                                   'SRCMANFILES']
         self._dfdict_keys += ['PY3TARGET{0:03d}'.format(i)
                               for i in range(1, 1000)]
         self._dfdict_keys += ['CMDNAME{0:03d}'.format(i)
                               for i in range(1, 1000)]
         self._srcdict_keys: list = ['DSTDIR', 'DSTABSDIR', 'FMODE']
         self._rawconflst: list = []
+        self._configfpath: str = ''
         self._pass_analyze: bool = False
         self._pass_check: bool = False
         self._pass_normalize: bool = False
         return
+
+    @property
+    def configfpath(self) -> str:
+        return self._configfpath
 
     def print_attribute(self):
         for k, v in self.__dict__.items():
@@ -443,6 +450,12 @@ class ConfParser_snakeland():
             return s.strip()
         with open(conf, 'rt', encoding='utf-8') as fp:
             self._rawconflst = [rowstrip(row) for row in fp]
+        if os.path.isabs(conf) != True:
+            errmes: str = 'Error: conf is Not absolute path. [{0}]'.format(
+                conf)
+            print(errmes, file=sys.stderr)
+            exit(1)
+        self._configfpath = conf
         self._load_df()
         self._load_src()
         return
@@ -450,8 +463,8 @@ class ConfParser_snakeland():
     def analyze(self):
         dfdictkeys_es: list = ['CMDNAME001', 'DSTBASEDIR', 'PKGNAME']
         srcdictkeys_es: list = ['DSTDIR']
-        dfdictkeys_opt: list = ['OSCHECK', 'INSTALLCMD',
-                                'TARGETCMD', 'SHEBANG', 'PY3VERSION']
+        dfdictkeys_opt: list = ['OSCHECK', 'INSTALLCMD', 'TARGETCMD',
+                                'SHEBANG', 'PY3VERSION', 'DSTMANDIR', 'SRCMANFILES']
         dfdictkeys_opt += ['PY3TARGET{0:03d}'.format(i)
                            for i in range(1, 1000)]
         dfdictkeys_opt += ['CMDNAME{0:03d}'.format(i) for i in range(2, 1000)]
@@ -658,6 +671,35 @@ class ConfParser_snakeland():
         varname = 'PY3VERSION'
         var = dfdict.get(varname, '')
         self._check_PY3VERSION(var)
+        varname = 'DSTMANDIR'
+        var = dfdict.get(varname, '')
+        dstmandir: str = var
+        if os.path.isabs(var) != True:
+            errmes = 'Error: DSTMANDIR is NOT absolute path. [{0}]'.format(var)
+            print_err(errmes)
+            exit(1)
+        if os.path.isdir(var) != True:
+            try:
+                os.makedirs(var, mode=0o755)
+            except:
+                errmes = 'Error: Can not make the DSTMANDIR directory. [{0}]'.format(
+                    var)
+                print_err(errmes)
+                exit(1)
+        varname = 'SRCMANFILES'
+        var = dfdict.get(varname, list())
+        if dstmandir != '' and len(var) == 0:
+            errmes = 'Error: Empty SRCMANFILES [{0}]'.format(var)
+            print_err(errmes)
+            exit(1)
+        if len(var) >= 1:
+            for s in var:
+                f = os.path.abspath(os.path.expanduser(s))
+                if os.path.isfile(f) != True:
+                    errmes = 'Error: Not found the SRCMANFILES file. [{0}]'.format(
+                        s)
+                    print_err(errmes)
+                    exit(1)
         for srcfpath, vdict in srcdict.items():
             varname = 'DSTDIR'
             value = vdict.get(varname, '')
@@ -748,6 +790,25 @@ class ConfParser_snakeland():
         print_err(errmes)
         exit(1)
 
+    def _normalize_SRCMANFILES(self, srcmanfiles: list) -> tuple:
+        if isinstance(srcmanfiles, list) != True:
+            errmes: str = 'Error: srcmanfiles is NOT list type.'
+            raise TypeError(errmes)
+        if len(srcmanfiles) == 0:
+            return tuple()
+
+        def func(f: str) -> str:
+            d: str = os.path.dirname(self.configfpath)
+            fpath: str = os.path.abspath(d + '/' + f)
+            if os.path.isfile(fpath) != True:
+                errmes = 'Error: Not found the SRCMANFILES file. [{0}]'.format(
+                    fpath)
+                print_err(errmes)
+                exit(1)
+            return fpath
+        tmplist: list = [func(f) for f in srcmanfiles]
+        return tuple(tmplist)
+
     def normalize(self):
         def abspath(x): return os.path.abspath(os.path.expanduser(x))
         errmes: str = ''
@@ -773,6 +834,10 @@ class ConfParser_snakeland():
         varname = 'PY3VERSION'
         var = dfdict.get(varname, '')
         var = self._normalize_PY3VERSION(var)
+        dfdict[varname] = var
+        varname = 'SRCMANFILES'
+        var = dfdict.get(varname, list())
+        var = self._normalize_SRCMANFILES(var)
         dfdict[varname] = var
         srcdict_new: dict = dict()
         vdict_new: dict = dict()
@@ -814,6 +879,254 @@ class ConfParser_snakeland():
         self.srcdict = srcdict_new
         self._pass_normalize = True
         return
+
+
+class Findpy3_cache(object):
+    def __init__(self):
+        self._og_latest: bool = False
+        self._og_later: str = ''
+        self._og_older: str = ''
+        self._og_range: str = ''
+        self._og_order: str = ''
+        self._platform: str = sys.platform
+        self._pathenv: str = os.environ['PATH']
+        self._tmpdir: pathlib.Path = pathlib.Path('')
+        self._tmpdir1st: pathlib.Path = pathlib.Path('')
+        self._cachefpath: pathlib.Path = pathlib.Path('')
+        return
+
+    @property
+    def og_latest(self) -> bool:
+        return self._og_latest
+
+    @property
+    def og_later(self) -> str:
+        return self._og_later
+
+    @property
+    def og_older(self) -> str:
+        return self._og_older
+
+    @property
+    def og_range(self) -> str:
+        return self._og_range
+
+    @property
+    def og_order(self) -> str:
+        return self._og_order
+
+    @property
+    def platform(self) -> str:
+        return self._platform
+
+    @property
+    def pathenv(self) -> str:
+        return self._pathenv
+
+    @property
+    def tmpdir(self) -> str:
+        return self._tmpdir
+
+    @property
+    def tmpdir1st(self) -> str:
+        return self._tmpdir1st
+
+    @property
+    def cachefpath(self) -> str:
+        return self._cachefpath
+
+    def init(self, arg_latest: bool, arg_later: str, arg_older: str,
+             arg_range: str, arg_order: str):
+        chklist: list = [(arg_latest, 'arg_latest', bool),
+                         (arg_later, 'arg_later', str),
+                         (arg_older, 'arg_older', str),
+                         (arg_range, 'arg_range', str),
+                         (arg_order, 'arg_order', str)]
+        for v, vname, vtype in chklist:
+            if isinstance(v, vtype) != True:
+                errmes: str = 'Error: {0} is NOT {1}'.format(
+                    vname, repr(vtype))
+                raise TypeError(errmes)
+        chklist: list = [arg_latest == False, arg_later == '',
+                         arg_older == '', arg_range == '',
+                         arg_order == '']
+        if chklist.count(False) == 0:
+            errmes: str = 'Error: Do not set args option in init().'
+            print(errmes, file=sys.stderr)
+            exit(1)
+        if chklist.count(False) >= 2:
+            errmes: str = 'Error: Multiple args options in init().'
+            print(errmes, file=sys.stderr)
+            exit(1)
+        self._og_latest = True if arg_latest == True else False
+        self._og_later = arg_later if arg_later != '' else ''
+        self._og_older = arg_older if arg_older != '' else ''
+        self._og_range = arg_range if arg_range != '' else ''
+        self._og_order = arg_order if arg_order != '' else ''
+        systemtmpdir = pathlib.Path(tempfile.gettempdir())
+        date: str = time.strftime('%Y%m%d', time.localtime())
+        if self.platform != 'win32':
+            uid: str = str(os.getuid())
+            s1: str = 'snakeland_findpy3_{0}'.format(date)
+            s2: str = '{0}'.format(uid)
+            tmpdir = systemtmpdir / s1 / s2
+            tmpdir1st = systemtmpdir / s1
+            self._tmpdir = tmpdir
+            self._tmpdir1st = tmpdir1st
+        else:
+            s1 = 'snakeland_findpy3_{0}'.format(date)
+            tmpdir = systemtmpdir / s1
+            self._tmpdir = tmpdir
+            self._tmpdir1st = None
+        self._cachefpath = self.tmpdir / 'findpy3_cache.txt'
+        return
+
+    def mktempdir_ifnot(self):
+        if self.tmpdir1st != None:
+            pathlib.Path(self.tmpdir1st).mkdir(exist_ok=True)
+        pathlib.Path(self.tmpdir).mkdir(exist_ok=True)
+        if self.platform != 'win32':
+            newstmode: int = 0
+            dpath: str = ''
+            dpath = str(self.tmpdir1st)
+            newstmode = os.stat(dpath).st_mode | 0o1000
+            os.chmod(dpath, newstmode)
+            dpath = str(self.tmpdir)
+            newstmode = os.stat(dpath).st_mode | 0o1000
+            os.chmod(dpath, newstmode)
+        return
+
+    def remove_oldcache(self):
+        s: str = ''
+        systemtmpdir = pathlib.Path(tempfile.gettempdir())
+        date: str = time.strftime('%Y%m%d', time.localtime())
+        s = 'snakeland_findpy3_{0}'.format(date)
+        nowtmpdir = systemtmpdir / s
+        ptn: str = r'snakeland\_findpy3\_2[0-9]{3}[01][0-9][0-3][0-9]'
+        recpl = re.compile(ptn)
+        for f in pathlib.Path(systemtmpdir).glob('*'):
+            if f.is_dir() != True:
+                continue
+            if f == nowtmpdir:
+                continue
+            s = str(f.relative_to(systemtmpdir))
+            if recpl.match(s) == None:
+                continue
+            shutil.rmtree(f)
+        return
+
+    def _createrowkey_on_cache(self) -> list:
+        chklist: list = [self.og_latest == False, self.og_later == '',
+                         self.og_older == '', self.og_range == '',
+                         self.og_order == '']
+        if chklist.count(False) == 0:
+            errmes = 'Error: Do not set args option attribute.'
+            print(errmes, file=sys.stderr)
+            exit(1)
+        if chklist.count(False) >= 2:
+            errmes = 'Error: Multiple args option attributes.'
+            print(errmes, file=sys.stderr)
+            exit(1)
+        rowlist: list = list()
+        if self.og_latest == True:
+            rowlist = ['latest', 'EMPTY']
+        elif self.og_later != '':
+            rowlist = ['later', self.og_later]
+        elif self.og_older != '':
+            rowlist = ['older', self.og_older]
+        elif self.og_range != '':
+            rowlist = ['range', self.og_range]
+        elif self.og_order != '':
+            rowlist = ['order', self.og_order]
+        rowlist.append(self.pathenv)
+        return rowlist
+
+    def _createrow_on_cache(self, python3xpath: str) -> str:
+        if os.path.isabs(python3xpath) != True:
+            errmes: str = 'Error: Not absolute python3xpath. [{0}]'.format(
+                python3xpath)
+            print(errmes, file=sys.stderr)
+            exit(1)
+        if os.path.isfile(python3xpath) != True:
+            errmes: str = 'Error: Not found the python path. [{0}]'.format(
+                python3xpath)
+            print(errmes, file=sys.stderr)
+            exit(1)
+        rowlist = self._createrowkey_on_cache()
+        rowlist.append(python3xpath)
+        retstr: str = '|X|'.join(rowlist)
+        return retstr
+
+    def store(self, hit: bool, python3xpath: str):
+        if hit:
+            return
+        errmes: str = ''
+        chklist: list = [(hit, 'hit', bool),
+                         (python3xpath, 'python3xpath', str)]
+        for v, vname, vtype in chklist:
+            if isinstance(v, vtype) != True:
+                errmes = 'Error: {0} is NOT {1} type'.format(
+                    vname, repr(vtype))
+                raise TypeError(errmes)
+        if str(self.cachefpath) == '':
+            errmes = 'Error: Empty self.cachefpath'
+            raise ValueError(errmes)
+        if self.cachefpath.name != 'findpy3_cache.txt':
+            errmes = 'Error: Invalid cache filename. [{0}]'.format(
+                self.cachefpath.name)
+            raise ValueError(errmes)
+        row: str = self._createrow_on_cache(python3xpath)
+        with open(self.cachefpath, 'at') as fp:
+            print(row, file=fp)
+        return
+
+    def _createstr_cachekey(self) -> str:
+        rowlist = self._createrowkey_on_cache()
+        retstr: str = '|X|'.join(rowlist)
+        return retstr
+
+    def get(self) -> tuple[bool, str]:
+        retfalse: tuple = tuple([False, ''])
+        if str(self.cachefpath) == '':
+            errmes = 'Error: Empty self.cachefpath'
+            raise ValueError(errmes)
+        if self.cachefpath.name != 'findpy3_cache.txt':
+            errmes = 'Error: Invalid cache filename. [{0}]'.format(
+                self.cachefpath.name)
+            raise ValueError(errmes)
+        if os.path.isfile(self.cachefpath) != True:
+            return retfalse
+        cachekey: str = self._createstr_cachekey()
+        python3xpath: str = ''
+        python3xrow: str = ''
+        with open(self.cachefpath, 'rt') as fp:
+            for srcrow in fp:
+                row: str = srcrow.rstrip()
+                if row.startswith(cachekey):
+                    python3xrow = row
+                    break
+        if python3xrow == '':
+            return retfalse
+        python3xpath = python3xrow.removeprefix(cachekey + '|X|')
+        chk_pythonexec: bool = False
+        if sys.version_info.minor >= 5:
+            retproc = subprocess.run(
+                [python3xpath, '--version'], capture_output=True)
+            if retproc.returncode == 0:
+                chk_pythonexec = True
+        else:
+            try:
+                tmpstr: str = subprocess.check_output(
+                    [python3xpath, '--version'], encoding='utf-8')
+            except:
+                pass
+            if tmpstr.startswith('Python'):
+                chk_pythonexec = True
+        if chk_pythonexec != True:
+            pathlib.Path(self.cachefpath).unlink()
+            print('Warning: cache clear')
+            return retfalse
+        return True, python3xpath
 
 
 class Snakeland_uninstall(object):
@@ -884,8 +1197,8 @@ class Snakeland_uninstall(object):
 
 
 class Main_snakeland():
-    version = '0.0.3'
-    date = '19 Dec 2024'
+    version = '0.0.4'
+    date = '3 Jan 2025'
 
     @staticmethod
     def show_version():
@@ -945,7 +1258,7 @@ class Main_snakeland():
     @staticmethod
     def show_license():
         meses = ['SNAKELAND, Instant python script installer.',
-                 'Copyright (C) 2023 Takaaki Watanabe as Mike Turkey',
+                 'Copyright (C) 2023-2025 MikeTurkey ALL RIGHT RESERVED.',
                  'contact: voice[ATmark]miketurkey.com',
                  '',
                  'This program is free software: you can redistribute it and/or modify',
@@ -1199,6 +1512,70 @@ class Main_snakeland():
         return receipt
 
     @staticmethod
+    def copy_dstmandir(srcmanfiles: tuple, dstmandir: str, config: str, dryrun: bool = False) -> list:
+        errmes: str = ''
+        f: str = ''
+        srcfpath: str = ''
+        dstfpath: str = ''
+        configdir: str = os.path.dirname(config)
+        receipt: list = list()
+        if dryrun:
+            print('Dryrun: make directory.')
+        else:
+            if os.path.isdir(dstmandir) != True:
+                try:
+                    os.makedirs(dstmandir)
+                except:
+                    errmes = 'Error: Can not make the directory. [{0}]'.format(
+                        dstmandir)
+                    print_err(errmes)
+                    exit(1)
+        platform_startsptns: tuple = ('darwin', 'linux', 'freebsd', 'openbsd')
+        chklist: list = [sys.platform.startswith(
+            ptn) for ptn in platform_startsptns]
+        if chklist.count(False) == 4:
+            errmes = 'Error: Not support OS. [{0}]'.format(sys.platform)
+            print_err(errmes)
+            exit(1)
+        plain_endptns: tuple = ('.1', '.2', '.3', '.4',
+                                '.5', '.6', '.7', '.8', '.9')
+        for f in srcmanfiles:
+            srcfpath: str = f
+            dstfpath: str = os.path.abspath(
+                dstmandir + '/' + os.path.basename(srcfpath))
+            chklist = [f.endswith(s) for s in plain_endptns]
+            isplainfile: bool = any(chklist)
+            isgzfile: bool = f.endswith('.gz')
+            if sys.platform == 'darwin':
+                if isplainfile != True:
+                    continue
+            elif sys.platform == 'linux':
+                if isgzfile != True:
+                    continue
+            elif sys.platform.startswith('freebsd') == True:
+                if isgzfile != True:
+                    continue
+            elif sys.platform.startswith('openbsd') == True:
+                if isgzfile != True:
+                    continue
+            if dryrun:
+                print('Dryrun: copy, {0} to {1}'.format(srcfpath, dstmandir))
+            else:
+                if os.path.isfile(srcfpath) != True:
+                    errmes = 'Error: Not found the file. [{0}]'.format(
+                        srcfpath)
+                    print_err(errmes)
+                    exit(1)
+                try:
+                    shutil.copy(srcfpath, dstmandir)
+                except:
+                    errmes = 'Error: Not copy the file. [{0}]'.format(srcfpath)
+                    print_err(errmes)
+                    exit(1)
+            receipt.append(dstfpath)
+        return receipt
+
+    @staticmethod
     def _install_confpy(confpy3: str) -> str:
         py3cmdopt: str = ''
         ptn: str = ''
@@ -1385,12 +1762,20 @@ def main_snakeland():
     args.check()
     args.normalize()
     if args.subcmd == 'findpy3':
-        py3xstr = Main_snakeland.findpy3opt2str(args)
-        python3xpath = Main_snakeland.py3xhunt(py3xstr)
-        if python3xpath == '':
-            errmes = 'Error: Not found python3 command.'
-            print_err(errmes)
-            exit(1)
+        py3cache = Findpy3_cache()
+        py3cache.init(args.latest, args.later,
+                      args.older, args.range, args.order)
+        py3cache.mktempdir_ifnot()
+        hit, python3xpath = py3cache.get()
+        if hit != True:
+            py3xstr = Main_snakeland.findpy3opt2str(args)
+            python3xpath = Main_snakeland.py3xhunt(py3xstr)
+            if python3xpath == '':
+                errmes = 'Error: Not found python3 command.'
+                print_err(errmes)
+                exit(1)
+        py3cache.store(hit, python3xpath)
+        py3cache.remove_oldcache()
         print(python3xpath)
         exit(0)
     if args.subcmd == 'uninstall':
@@ -1417,6 +1802,11 @@ def main_snakeland():
         receipt: list = list()
         receipt = Main_snakeland.copy(
             conf.srcdict, dstbasedir, args.config, dryrun=False)
+        srcmanfiles: tuple = conf.dfdict['SRCMANFILES']
+        dstmandir: str = conf.dfdict['DSTMANDIR']
+        templist = Main_snakeland.copy_dstmandir(
+            srcmanfiles, dstmandir, args.config, dryrun=False)
+        receipt += templist
         templist = Main_snakeland.install(
             conf.dfdict, rawconf.dfdict['PY3VERSION'], dryrun=False)
         receipt += templist

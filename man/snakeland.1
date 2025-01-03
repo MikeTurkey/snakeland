@@ -27,7 +27,7 @@ level margin: \\n[rst2man-indent\\n[rst2man-indent-level]]
 .\" new: \\n[rst2man-indent\\n[rst2man-indent-level]]
 .in \\n[rst2man-indent\\n[rst2man-indent-level]]u
 ..
-.TH "SNAKELAND" "1" "2024-12-19" "snakeland 0.0.3" "MikeTurkey Utils"
+.TH "SNAKELAND" "1" "2025-01-03" "snakeland 0.0.4" "MikeTurkey Utils"
 .SH NAME
 snakeland \- Instant Python script installer.
 .\" 2023 Copyright Mike Turkey
@@ -84,20 +84,26 @@ The script wrapper is make on /usr/local/bin as cui command.
 .fi
 .sp
 .SH ARGUMENT
+.sp
+\-\-version, \-\-help, \-\-license
 .INDENT 0.0
-.TP
-.B  \-\-version\fP,\fB  \-\-help\fP,\fB  \-\-license
+.INDENT 3.5
 .nf
 Print version, help message, license.
 .fi
 .sp
-.TP
-.B  \-\-latest
+.UNINDENT
+.UNINDENT
+.sp
+\-\-latest
+.INDENT 0.0
+.INDENT 3.5
 .nf
 findpy3 sub command only
 Print latest python3 command path.
 .fi
 .sp
+.UNINDENT
 .UNINDENT
 .sp
 \-\-later [PYTHONVERSION]
@@ -265,6 +271,42 @@ default section, optional key.
 .UNINDENT
 .UNINDENT
 .nf
+SRCMANFILES: Source Man files.
+.fi
+.sp
+.INDENT 0.0
+.INDENT 3.5
+.nf
+default section, optional key.
+The pair of SRCMANFILES and DSTMANDIR work together to install the run directory.
+Enable to set plain type and gz compress type.
+snakeland install one of plain and gz compress file by the platform.
+e.g.
+.in +2
+SRCMANFILES = [\(aqman/snakeland.1.gz\(aq, \(aqman/snakeland.1\(aq]
+.in -2
+.fi
+.sp
+.UNINDENT
+.UNINDENT
+.nf
+DSTMANDIR: Destination Man directory.
+.fi
+.sp
+.INDENT 0.0
+.INDENT 3.5
+.nf
+default section, optional key.
+The pair of SRCMANFILES and DSTMANDIR work together to install the run directory.
+e.g.
+.in +2
+DSTMANDIR = \(aq/usr/local/share/man/man1\(aq
+.in -2
+.fi
+.sp
+.UNINDENT
+.UNINDENT
+.nf
 DSTDIR: Relative path of DSTBASEDIR.
 .fi
 .sp
@@ -342,7 +384,7 @@ MikeTurkey <voice[ATmark]miketurkey.com>
 GPLv3 License including a prohibition clause for AI training.
 .SH COPYRIGHT
 .nf
-2023\-2024, COPYRIGHT MikeTurkey, All Right Reserved.
+2023\-2025, COPYRIGHT MikeTurkey, All Right Reserved.
 ABSOLUTELY NO WARRANTY.
 Document: GFDL1.3 License including a prohibition clause for AI training.
 URL:  <https://miketurkey.com> 
