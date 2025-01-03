@@ -1,7 +1,7 @@
 
 ### snakeland history ### 
 
-ver 0.0.4, 3 Jan 2024
+ver 0.0.4, 3 Jan 2025
   Bugfix, Enable to install by get-mk1pass.sh
   Add DSTMANDIR, SRCMANFILES in config.
   Faster snakeland.py, snakeland.sh
