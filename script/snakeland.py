@@ -673,19 +673,22 @@ class ConfParser_snakeland():
         self._check_PY3VERSION(var)
         varname = 'DSTMANDIR'
         var = dfdict.get(varname, '')
-        dstmandir: str = var
-        if os.path.isabs(var) != True:
-            errmes = 'Error: DSTMANDIR is NOT absolute path. [{0}]'.format(var)
-            print_err(errmes)
-            exit(1)
-        if os.path.isdir(var) != True:
-            try:
-                os.makedirs(var, mode=0o755)
-            except:
-                errmes = 'Error: Can not make the DSTMANDIR directory. [{0}]'.format(
+        dstmandir: str = ''
+        if var != '':
+            dstmandir = var
+            if os.path.isabs(var) != True:
+                errmes = 'Error: DSTMANDIR is NOT absolute path. [{0}]'.format(
                     var)
                 print_err(errmes)
                 exit(1)
+            if os.path.isdir(var) != True:
+                try:
+                    os.makedirs(var, mode=0o755)
+                except:
+                    errmes = 'Error: Can not make the DSTMANDIR directory. [{0}]'.format(
+                        var)
+                    print_err(errmes)
+                    exit(1)
         varname = 'SRCMANFILES'
         var = dfdict.get(varname, list())
         if dstmandir != '' and len(var) == 0:
@@ -1197,8 +1200,8 @@ class Snakeland_uninstall(object):
 
 
 class Main_snakeland():
-    version = '0.0.4'
-    date = '3 Jan 2025'
+    version = '0.0.5'
+    date = '11 Jan 2025'
 
     @staticmethod
     def show_version():
@@ -1519,6 +1522,8 @@ class Main_snakeland():
         dstfpath: str = ''
         configdir: str = os.path.dirname(config)
         receipt: list = list()
+        if len(srcmanfiles) == 0 or dstmandir == '':
+            return list()  # empty srcmandir, dstmandir
         if dryrun:
             print('Dryrun: make directory.')
         else:
@@ -1802,8 +1807,8 @@ def main_snakeland():
         receipt: list = list()
         receipt = Main_snakeland.copy(
             conf.srcdict, dstbasedir, args.config, dryrun=False)
-        srcmanfiles: tuple = conf.dfdict['SRCMANFILES']
-        dstmandir: str = conf.dfdict['DSTMANDIR']
+        srcmanfiles: tuple = conf.dfdict.get('SRCMANFILES', tuple())
+        dstmandir: str = conf.dfdict.get('DSTMANDIR', '')
         templist = Main_snakeland.copy_dstmandir(
             srcmanfiles, dstmandir, args.config, dryrun=False)
         receipt += templist
