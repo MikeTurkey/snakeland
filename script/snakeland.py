@@ -64,6 +64,7 @@ import getpass
 import glob
 import pathlib
 import tempfile
+import base64
 
 
 class Print_Derivative(object):
@@ -896,6 +897,7 @@ class Findpy3_cache(object):
         self._tmpdir: pathlib.Path = pathlib.Path('')
         self._tmpdir1st: pathlib.Path = pathlib.Path('')
         self._cachefpath: pathlib.Path = pathlib.Path('')
+        self._md5b32ten: str = ''
         return
 
     @property
@@ -938,8 +940,32 @@ class Findpy3_cache(object):
     def cachefpath(self) -> str:
         return self._cachefpath
 
+    @property
+    def md5b32ten(self) -> str:
+        return self._md5b32ten
+
+    @staticmethod
+    def _createstr_md5b32ten(cmdver: str, cmddate: str) -> str:
+        date: str = time.strftime('%Y%m', time.localtime())
+        if sys.platform != 'win32':
+            uid: int = os.getuid()
+            gid: int = os.getgid()
+            s: str = '{0},{1},{2},{3},{4},{5}'
+            seedstr: str = s.format(
+                cmdver, cmddate, sys.platform, date, uid, gid)
+        else:
+            s: str = '{0},{1},{2},{3}'
+            seedstr: str = s.format(cmdver, cmddate, sys.platform, date)
+        seedbys: bytes = seedstr.encode('utf-8')
+        hobj = hashlib.md5(seedbys)
+        hashdata: bytes = hobj.digest()
+        b32bys: bytes = base64.b32encode(hashdata)
+        b32str: str = b32bys.decode('utf-8')
+        md5b32ten: str = b32str[0:10]
+        return md5b32ten
+
     def init(self, arg_latest: bool, arg_later: str, arg_older: str,
-             arg_range: str, arg_order: str):
+             arg_range: str, arg_order: str, cmdver: str, cmddate: str):
         chklist: list = [(arg_latest, 'arg_latest', bool),
                          (arg_later, 'arg_later', str),
                          (arg_older, 'arg_older', str),
@@ -966,34 +992,26 @@ class Findpy3_cache(object):
         self._og_older = arg_older if arg_older != '' else ''
         self._og_range = arg_range if arg_range != '' else ''
         self._og_order = arg_order if arg_order != '' else ''
+        self._md5b32ten = self._createstr_md5b32ten(cmdver, cmddate)
         systemtmpdir = pathlib.Path(tempfile.gettempdir())
         date: str = time.strftime('%Y%m%d', time.localtime())
         if self.platform != 'win32':
             uid: str = str(os.getuid())
-            s1: str = 'snakeland_findpy3_{0}'.format(date)
-            s2: str = '{0}'.format(uid)
-            tmpdir = systemtmpdir / s1 / s2
-            tmpdir1st = systemtmpdir / s1
-            self._tmpdir = tmpdir
-            self._tmpdir1st = tmpdir1st
-        else:
-            s1 = 'snakeland_findpy3_{0}'.format(date)
+            s1: str = 'snakeland_{0}_{1}_{2}'.format(uid, self.md5b32ten, date)
             tmpdir = systemtmpdir / s1
             self._tmpdir = tmpdir
-            self._tmpdir1st = None
+        else:
+            s1 = 'snakeland_{0}_{1}'.format(self.md5b32ten, date)
+            tmpdir = systemtmpdir / s1
+            self._tmpdir = tmpdir
         self._cachefpath = self.tmpdir / 'findpy3_cache.txt'
         return
 
     def mktempdir_ifnot(self):
-        if self.tmpdir1st != None:
-            pathlib.Path(self.tmpdir1st).mkdir(exist_ok=True)
         pathlib.Path(self.tmpdir).mkdir(exist_ok=True)
         if self.platform != 'win32':
             newstmode: int = 0
             dpath: str = ''
-            dpath = str(self.tmpdir1st)
-            newstmode = os.stat(dpath).st_mode | 0o1000
-            os.chmod(dpath, newstmode)
             dpath = str(self.tmpdir)
             newstmode = os.stat(dpath).st_mode | 0o1000
             os.chmod(dpath, newstmode)
@@ -1001,12 +1019,29 @@ class Findpy3_cache(object):
 
     def remove_oldcache(self):
         s: str = ''
+        errmes: str = ''
+        if self.md5b32ten == '':
+            errmes = 'Error: md5b32ten is empty.'
+            print(errmes, file=sys.stderr)
+            exit(1)
         systemtmpdir = pathlib.Path(tempfile.gettempdir())
         date: str = time.strftime('%Y%m%d', time.localtime())
-        s = 'snakeland_findpy3_{0}'.format(date)
-        nowtmpdir = systemtmpdir / s
-        ptn: str = r'snakeland\_findpy3\_2[0-9]{3}[01][0-9][0-3][0-9]'
+        if sys.platform != 'win32':
+            uid: int = os.getuid()
+            s = 'snakeland_{0}_{1}_{2}'.format(uid, self.md5b32ten, date)
+            nowtmpdir = systemtmpdir / s
+            s = r'snakeland\_{0}\_{1}'.format(uid, self.md5b32ten)
+            ptn: str = s + r'\_2[0-9]{3}[0-1][0-9][0-3][0-9]'
+        else:
+            s = 'snakeland_{0}_{1}'.format(self.md5b32ten, date)
+            nowtmpdir = systemtmpdir / s
+            s = r'snakeland\_{0}'.format(self.md5b32ten)
+            ptn: str = s + r'\_2[0-9]{3}[0-1][0-9][0-3][0-9]'
         recpl = re.compile(ptn)
+        nowepoch: int = int(time.time())
+        ptn_time = r'2[0-9]{3}[0-1][0-9][0-3][0-9]'
+        recpl_time = re.compile(ptn_time)
+        ttl: int = 86400 * 2
         for f in pathlib.Path(systemtmpdir).glob('*'):
             if f.is_dir() != True:
                 continue
@@ -1014,6 +1049,13 @@ class Findpy3_cache(object):
                 continue
             s = str(f.relative_to(systemtmpdir))
             if recpl.match(s) == None:
+                continue
+            reobj = recpl_time.search(s)
+            if reobj == None:
+                continue
+            timestr: str = reobj.group(0)
+            epoch: int = int(time.mktime(time.strptime(timestr, '%Y%m%d')))
+            if (nowepoch - epoch) < ttl:
                 continue
             shutil.rmtree(f)
         return
@@ -1200,8 +1242,8 @@ class Snakeland_uninstall(object):
 
 
 class Main_snakeland():
-    version = '0.0.5'
-    date = '11 Jan 2025'
+    version = '0.0.6'
+    date = '12 Jan 2025'
 
     @staticmethod
     def show_version():
@@ -1768,8 +1810,8 @@ def main_snakeland():
     args.normalize()
     if args.subcmd == 'findpy3':
         py3cache = Findpy3_cache()
-        py3cache.init(args.latest, args.later,
-                      args.older, args.range, args.order)
+        py3cache.init(args.latest, args.later, args.older, args.range, args.order,
+                      Main_snakeland.version, Main_snakeland.date)
         py3cache.mktempdir_ifnot()
         hit, python3xpath = py3cache.get()
         if hit != True:

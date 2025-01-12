@@ -1,6 +1,10 @@
 
 ### snakeland history ### 
 
+ver 0.0.6, 12 Jan 2025
+  Bugfix, snakeland on multiusers does not work.
+    Change cache directory hierarchy.
+
 ver 0.0.5, 11 Jan 2025
   Bugfix, If no DSTMANDIR, SRCMANFILES in config, it does not work.
 
